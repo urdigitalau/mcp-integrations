@@ -1,9 +1,19 @@
 {
-  "name": "@mcp-integrations/wordpress",
+  "name": "@urdigital/mcp-server-wordpress",
   "version": "0.1.0",
+  "description": "MCP server for WordPress: posts, pages, categories, tags, media, comments, users, generic custom post types, settings, and read-only plugin/theme visibility, via the core REST API.",
   "type": "module",
   "bin": {
     "mcp-server-wordpress": "dist/index.js"
+  },
+  "files": ["dist"],
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "wordpress", "cms", "content", "claude"],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urdigitalau/mcp-integrations.git",
+    "directory": "packages/wordpress"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

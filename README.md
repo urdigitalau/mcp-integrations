@@ -103,15 +103,40 @@ Add to your MCP client config (e.g. `claude_desktop_config.json`):
 
 ## What's implemented
 
-**WordPress** (`packages/wordpress`) — `wp_list_posts`, `wp_get_post`,
-`wp_create_post`, `wp_update_post`, `wp_delete_post`, `wp_list_pages`,
-`wp_upload_media`, `wp_search`. New posts default to `draft` status so
-nothing publishes by accident.
+**WordPress** (`packages/wordpress`) — 46 tools covering posts, pages,
+categories, tags, media, comments, users, generic custom post types,
+settings, and read-only plugin/theme visibility. All tested against a real
+headless WordPress site — see the package's own README for the full tool
+table and testing notes, including a real gotcha around custom post type
+REST bases differing from their slugs, and which content types (posts,
+pages, comments) support reversible trash vs. which (categories, tags,
+media) don't. Plugin/theme install/activate/deactivate/delete are
+deliberately not included — read-only listing only.
 
 **Bing Webmaster Tools** (`packages/bing-webmaster`) — `bing_list_sites`,
-`bing_get_traffic_stats`, `bing_get_query_stats`,`bing_get_page_stats`,`bing_get_crawl_issues`, `bing_get_url_info`, `bing_submit_url`,`bing_submit_sitemap`, `bing_get_keyword_stats`, `bing_get_query_traffic_stats`,`bing_get_url_traffic_info`, `bing_get_children_url_traffic_info`. Built against the **JSON/HTTP REST API only** — Microsoft is retiring the legacy SOAP/POX endpoints on **August 31, 2026**, and the REST surface has full functional parity, so there's no reason to build against the deprecated one. All 12 tools have been tested against a real, multi-site Bing Webmaster account — see the package's own README for testing notes.
+`bing_get_traffic_stats`, `bing_get_query_stats`, `bing_get_page_stats`,
+`bing_get_crawl_issues`, `bing_get_url_info`, `bing_submit_url`,
+`bing_submit_sitemap`, `bing_get_keyword_stats`, `bing_get_query_traffic_stats`,
+`bing_get_url_traffic_info`, `bing_get_children_url_traffic_info`. Built
+against the **JSON/HTTP REST API only** — Microsoft is retiring the legacy
+SOAP/POX endpoints on **August 31, 2026**, and the REST surface has full
+functional parity, so there's no reason to build against the deprecated one.
+All 12 tools have been tested against a real, multi-site Bing Webmaster
+account — see the package's own README for testing notes.
 
-**Microsoft Clarity** (`packages/clarity`) — `clarity_get_insights`. Clarity's Data Export API is intentionally narrow: one endpoint, max 3 days of history, up to 3 breakdown dimensions, and a small daily request quota per project. Tested directly against a real project: calling with no dimensions returns a broad 16-category snapshot (traffic, engagement, frustration signals, browser/device/country/page breakdowns); specifying any dimension swaps that out entirely for a narrower metric set cross-tabulated by the dimension(s) given — it's a trade-off between breadth and depth, not additive. Also confirmed: an out-of-range `numOfDays` returns a hard 400 with no error detail, but an invalid dimension name is silently ignored and falls back to the default snapshot with HTTP 200 — Clarity does no server-side validation on dimension names at all so the tool's own Zod enum is the only real safeguard against a silently wrong result.
+**Microsoft Clarity** (`packages/clarity`) — `clarity_get_insights`.
+Clarity's Data Export API is intentionally narrow: one endpoint, max 3 days
+of history, up to 3 breakdown dimensions, and a small daily request quota per
+project. Tested directly against a real project: calling with no dimensions
+returns a broad 16-category snapshot (traffic, engagement, frustration
+signals, browser/device/country/page breakdowns); specifying any dimension
+swaps that out entirely for a narrower metric set cross-tabulated by the
+dimension(s) given — it's a trade-off between breadth and depth, not
+additive. Also confirmed: an out-of-range `numOfDays` returns a hard 400
+with no error detail, but an invalid dimension name is silently ignored and
+falls back to the default snapshot with HTTP 200 — Clarity does no
+server-side validation on dimension names at all, so the tool's own Zod
+enum is the only real safeguard against a silently wrong result.
 
 ## Known API constraints worth knowing before you build on this
 
