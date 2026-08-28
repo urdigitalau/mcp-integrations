@@ -22,10 +22,11 @@ projects use.
 mcp-integrations/
 ├── packages/
 │   ├── shared/            # HTTP client w/ retry, env helpers — no tools of its own
-│   ├── wordpress/         # mcp-server-wordpress
-│   ├── bing-webmaster/    # mcp-server-bing-webmaster
-│   └── clarity/           # mcp-server-clarity
-│       # future: shopify/, squarespace/, cloudflare-analytics/
+│   ├── wordpress/         # mcp-server-wordpress (46 tools)
+│   ├── bing-webmaster/    # mcp-server-bing-webmaster (12 tools)
+│   ├── clarity/           # mcp-server-clarity (1 tool)
+│   └── cloudflare/        # mcp-server-cloudflare (5 tools)
+│       # future: shopify/, squarespace/
 ├── pnpm-workspace.yaml
 └── package.json
 ```
@@ -73,14 +74,15 @@ accept secrets as arguments.
 
 ### Connecting to Claude Desktop / Claude Code
 
-Add to your MCP client config (e.g. `claude_desktop_config.json`):
+All four servers are published to npm — `npx` is the simplest way to run
+them, no local build or path required:
 
 ```json
 {
   "mcpServers": {
     "wordpress": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-integrations/packages/wordpress/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@urdigital/mcp-server-wordpress"],
       "env": {
         "WORDPRESS_SITE_URL": "https://example.com",
         "WORDPRESS_USERNAME": "your-username",
@@ -88,18 +90,31 @@ Add to your MCP client config (e.g. `claude_desktop_config.json`):
       }
     },
     "bing-webmaster": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-integrations/packages/bing-webmaster/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@urdigital/mcp-server-bing-webmaster"],
       "env": { "BING_WEBMASTER_API_KEY": "..." }
     },
     "clarity": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-integrations/packages/clarity/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@urdigital/mcp-server-clarity"],
       "env": { "CLARITY_API_TOKEN": "..." }
+    },
+    "cloudflare": {
+      "command": "npx",
+      "args": ["-y", "@urdigital/mcp-server-cloudflare"],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "...",
+        "CLOUDFLARE_ZONE_ID": "..."
+      }
     }
   }
 }
 ```
+
+If you're working from a local clone instead (e.g. for development), point
+`command` at `node` and `args` at the built
+`packages/<name>/dist/index.js` path instead — see each package's own
+README for that variant.
 
 ## What's implemented
 
