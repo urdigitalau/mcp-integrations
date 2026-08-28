@@ -1,0 +1,20 @@
+{
+  "name": "mcp-integrations",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source MCP servers for marketing/web tooling: WordPress, Bing Webmaster Tools, Microsoft Clarity, and more to come.",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:wordpress": "pnpm --filter @mcp-integrations/wordpress dev",
+    "dev:bing-webmaster": "pnpm --filter @mcp-integrations/bing-webmaster dev",
+    "dev:clarity": "pnpm --filter @mcp-integrations/clarity dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  }
+}
