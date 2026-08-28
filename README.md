@@ -1,8 +1,8 @@
 # mcp-integrations
 
 Open-source MCP (Model Context Protocol) servers for the marketing/web-ops
-toolbox: **WordPress**, **Bing Webmaster Tools**, and **Microsoft Clarity**
-today, with **Shopify**, **Squarespace**, and **Cloudflare Analytics**
+toolbox: **WordPress**, **Bing Webmaster Tools**, **Microsoft Clarity**, and
+**Cloudflare Analytics** today, with **Shopify** and **Squarespace**
 planned next.
 
 ## Why one repo, separate servers
@@ -11,12 +11,12 @@ Each integration ships as its **own installable MCP server** (its own npm
 package, its own `bin` entry, its own credentials) so people can install only
 what they need — someone using Squarespace shouldn't have to configure
 WordPress credentials to get Cloudflare analytics working. But they all live
-in **one pnpm monorepo** and share a `@mcp-integrations/shared` package for
-HTTP retry/backoff logic and env-var handling, so adding the 4th, 5th, 6th
-integration is mostly "copy a package, swap the client and tool list" instead
-of re-solving auth/HTTP plumbing each time. This is the same pattern the
-official `modelcontextprotocol/servers` repo and most multi-integration MCP
-projects use.
+in **one pnpm monorepo** and share an `@urdigital/mcp-server-shared`
+package for HTTP retry/backoff logic and env-var handling, so adding the
+5th, 6th, 7th integration is mostly "copy a package, swap the client and
+tool list" instead of re-solving auth/HTTP plumbing each time. This is the
+same pattern the official `modelcontextprotocol/servers` repo and most
+multi-integration MCP projects use.
 
 ```
 mcp-integrations/
@@ -50,13 +50,13 @@ mcp-integrations/
 ```bash
 pnpm install
 cp .env.example .env   # fill in the credentials you have
-pnpm --filter @mcp-integrations/wordpress dev       # run one server directly, for testing
+pnpm --filter @urdigital/mcp-server-wordpress dev   # run one server directly, for testing
 ```
 
 Each server also builds independently for distribution:
 
 ```bash
-pnpm --filter @mcp-integrations/wordpress build
+pnpm --filter @urdigital/mcp-server-wordpress build
 node packages/wordpress/dist/index.js
 ```
 
@@ -67,10 +67,13 @@ node packages/wordpress/dist/index.js
 | WordPress | Application Password (Basic Auth) | wp-admin → Users → Profile → Application Passwords |
 | Bing Webmaster Tools | API key | bing.com/webmasters → Settings → API Access |
 | Microsoft Clarity | Bearer token, scoped per project | Clarity project → Settings → Data Export |
+| Cloudflare Analytics | API token, scoped to Zone → Analytics → Read | dash.cloudflare.com → My Profile → API Tokens |
 
 None of these are OAuth flows, so there's no redirect/callback server needed
 — just static tokens read from environment variables at startup. Tools never
-accept secrets as arguments.
+accept secrets as arguments. Cloudflare is the one exception to "just a
+token": it also needs a Zone ID (found on the zone's Overview page in the
+Cloudflare dashboard) since one token can be scoped to multiple zones.
 
 ### Connecting to Claude Desktop / Claude Code
 
@@ -198,7 +201,7 @@ Adding a new integration:
 
 1. `cp -r packages/clarity packages/your-service` as a starting skeleton.
 2. Replace `client.ts` with calls to the new API; keep using
-   `apiRequest`/`requireEnv` from `@mcp-integrations/shared`.
+   `apiRequest`/`requireEnv` from `@urdigital/mcp-server-shared`.
 3. Register tools in `index.ts` — mirror existing naming (`service_verb_noun`).
 4. Document required env vars in `.env.example` and the table above.
 5. Default any write/publish/delete action to the safest possible state
@@ -206,8 +209,8 @@ Adding a new integration:
    description, so a calling model doesn't take an irreversible action by
    default.
 
-PRs welcome — this is meant to grow into a small ecosystem of these, not stay
-a three-service repo.
+PRs welcome — this is meant to keep growing into a small ecosystem of
+these, not stay a four-service repo.
 
 ## License
 
