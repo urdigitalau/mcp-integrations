@@ -155,6 +155,54 @@ server.registerTool(
   }
 );
 
+   server.registerTool(
+     "bing_get_query_traffic_stats",
+     {
+       title: "Get traffic history for a single query",
+       description: "Get the click/impression history over time for one specific search query on a site.",
+       inputSchema: { siteUrl: z.string().url(), query: z.string() },
+     },
+     async ({ siteUrl, query }) => {
+       try {
+         return ok(await bing.getQueryTrafficStats(siteUrl, query));
+       } catch (e) {
+         return err(e);
+       }
+     }
+   );
+
+   server.registerTool(
+     "bing_get_url_traffic_info",
+     {
+       title: "Get traffic info for a single URL",
+       description: "Get clicks and impressions for one specific URL on a site.",
+       inputSchema: { siteUrl: z.string().url(), url: z.string().url() },
+     },
+     async ({ siteUrl, url }) => {
+       try {
+         return ok(await bing.getUrlTrafficInfo(siteUrl, url));
+       } catch (e) {
+         return err(e);
+       }
+     }
+   );
+
+   server.registerTool(
+     "bing_get_children_url_traffic_info",
+     {
+       title: "Get traffic info for child URLs under a directory",
+       description: "Get traffic info for every URL nested under a given parent URL/directory.",
+       inputSchema: { siteUrl: z.string().url(), url: z.string().url(), page: z.number().int().optional() },
+     },
+     async ({ siteUrl, url, page }) => {
+       try {
+         return ok(await bing.getChildrenUrlTrafficInfo(siteUrl, url, page));
+       } catch (e) {
+         return err(e);
+       }
+     }
+   );
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -72,4 +72,25 @@ export class BingWebmasterClient {
   getKeywordStats(query: string, country?: string, language?: string) {
     return this.call("GetKeywordStats", { q: query, country, language });
   }
+
+  /** Traffic history for a single search query on a site. */
+  getQueryTrafficStats(siteUrl: string, query: string) {
+    return this.call("GetQueryTrafficStats", { siteUrl, query });
+  }
+
+  /** Clicks/impressions for one specific URL. */
+  getUrlTrafficInfo(siteUrl: string, url: string) {
+    return this.call("GetUrlTrafficInfo", { siteUrl, url });
+  }
+
+    /**
+   * Traffic for every URL under a directory/parent URL.
+   * Confirmed correct against a real, high-traffic account: the official
+   * (siteUrl, url, page) shape returns clean HTTP 200s. An alternate
+   * (parentUrl, limit) shape seen in another implementation was tested and
+   * returns a hard 400 — the names below are the right ones.
+   */
+  getChildrenUrlTrafficInfo(siteUrl: string, url: string, page?: number) {
+    return this.call("GetChildrenUrlTrafficInfo", { siteUrl, url, page });
+  }
 }

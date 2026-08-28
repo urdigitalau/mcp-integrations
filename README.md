@@ -109,12 +109,7 @@ Add to your MCP client config (e.g. `claude_desktop_config.json`):
 nothing publishes by accident.
 
 **Bing Webmaster Tools** (`packages/bing-webmaster`) — `bing_list_sites`,
-`bing_get_traffic_stats`, `bing_get_query_stats`, `bing_get_page_stats`,
-`bing_get_crawl_issues`, `bing_get_url_info`, `bing_submit_url`,
-`bing_submit_sitemap`, `bing_get_keyword_stats`. Built against the **JSON/HTTP
-REST API only** — Microsoft is retiring the legacy SOAP/POX endpoints on
-**August 31, 2026**, and the REST surface has full functional parity, so
-there's no reason to build against the deprecated one.
+`bing_get_traffic_stats`, `bing_get_query_stats`,`bing_get_page_stats`,`bing_get_crawl_issues`, `bing_get_url_info`, `bing_submit_url`,`bing_submit_sitemap`, `bing_get_keyword_stats`, `bing_get_query_traffic_stats`,`bing_get_url_traffic_info`, `bing_get_children_url_traffic_info`. Built against the **JSON/HTTP REST API only** — Microsoft is retiring the legacy SOAP/POX endpoints on **August 31, 2026**, and the REST surface has full functional parity, so there's no reason to build against the deprecated one. All 12 tools have been tested against a real, multi-site Bing Webmaster account — see the package's own README for testing notes.
 
 **Microsoft Clarity** (`packages/clarity`) — `clarity_get_insights`.
 Clarity's Data Export API is intentionally narrow: one endpoint, max 3 days
