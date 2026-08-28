@@ -1,6 +1,6 @@
 {
   "name": "@urdigital/mcp-server-bing-webmaster",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Bing Webmaster Tools: sites, traffic/query/page stats, crawl issues, URL/sitemap submission, keyword stats.",
   "type": "module",
   "bin": {
