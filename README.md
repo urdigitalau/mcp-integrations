@@ -138,6 +138,21 @@ falls back to the default snapshot with HTTP 200 — Clarity does no
 server-side validation on dimension names at all, so the tool's own Zod
 enum is the only real safeguard against a silently wrong result.
 
+**Cloudflare** (`packages/cloudflare`) — `cloudflare_get_traffic_stats`,
+`cloudflare_get_hourly_traffic_stats`, `cloudflare_get_traffic_by_country`,
+`cloudflare_get_traffic_by_status_code`, `cloudflare_get_security_events`.
+Talks to Cloudflare's GraphQL Analytics API (not REST) for a single zone.
+Tested against a real production zone and found three separate real plan
+limits worth knowing before you build on this: the country/status-code
+breakdown dataset rejects any query window over 1 day; hourly-granularity
+data is only retained ~3 days back; and the security-events dataset isn't
+available on all plans (Free tier included) — see the package's own README
+for the exact error text each of these returns. Also worth knowing:
+GraphQL APIs can return HTTP 200 with a failure baked into an `errors`
+array in the body — this client checks for that explicitly, since a plain
+status-code check (as used by the REST-based servers in this repo) would
+silently treat a failed GraphQL query as a success.
+
 ## Known API constraints worth knowing before you build on this
 
 - **Clarity**: only the last 1–3 days of data are retrievable at all through
@@ -148,12 +163,16 @@ enum is the only real safeguard against a silently wrong result.
   against a real account.
 - **WordPress**: the REST API's update semantics use `POST` for partial
   updates (there's no real `PATCH`), which is preserved as-is in the client.
+- **Cloudflare**: several GraphQL datasets have plan-tier-dependent limits
+  (query window size, data retention, dataset availability) that surface as
+  runtime errors rather than anything discoverable in advance — see the
+  package's own README for the specific limits found during testing.
 
 ## Roadmap
 
 - [ ] Shopify (products, orders, inventory)
 - [ ] Squarespace
-- [ ] Cloudflare Analytics
+- [ ] Cloudflare: DNS management, cache purge (analytics done; broader scope deferred by design)
 - [ ] OAuth support for Bing (currently API-key only)
 - [ ] Optional Streamable HTTP transport for hosted/remote deployment
 - [ ] Shared integration-test harness against recorded fixtures

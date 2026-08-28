@@ -1,0 +1,28 @@
+{
+  "name": "@urdigital/mcp-server-cloudflare",
+  "version": "0.1.0",
+  "description": "MCP server for Cloudflare Analytics: zone traffic, bandwidth, threats, and page views via the GraphQL Analytics API.",
+  "type": "module",
+  "bin": {
+    "mcp-server-cloudflare": "dist/index.js"
+  },
+  "files": ["dist"],
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "cloudflare", "analytics", "claude"],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urdigitalau/mcp-integrations.git",
+    "directory": "packages/cloudflare"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@urdigital/mcp-server-shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.15.0",
+    "zod": "^3.25.0"
+  }
+}

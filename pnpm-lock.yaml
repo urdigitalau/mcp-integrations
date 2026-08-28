@@ -42,6 +42,18 @@ importers:
         specifier: ^3.25.0
         version: 3.25.76
 
+  packages/cloudflare:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.15.0
+        version: 1.30.0(zod@3.25.76)
+      '@urdigital/mcp-server-shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+
   packages/shared: {}
 
   packages/wordpress:
