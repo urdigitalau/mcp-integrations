@@ -698,6 +698,93 @@ server.registerTool(
   }
 );
 
+// ==================== Generic custom post types ====================
+
+server.registerTool(
+  "wp_list_custom_items",
+  {
+    title: "List items of a custom post type",
+    description: "List/search items of any post type not covered by the dedicated post/page tools — e.g. plugin-registered types like 'event' or 'lead_magnet'. Use wp_list_post_types first to discover what's available; pass the type's rest_base (usually but not always the same as its slug) as postType.",
+    inputSchema: {
+      postType: z.string().describe("REST base of the custom post type, e.g. 'event'"),
+      search: z.string().optional(),
+      perPage: z.number().int().min(1).max(100).optional(),
+      page: z.number().int().min(1).optional(),
+    },
+  },
+  async ({ postType, ...params }) => {
+    try {
+      return ok(await wp.listCustomItems(postType, params));
+    } catch (e) {
+      return err(e);
+    }
+  }
+);
+
+server.registerTool(
+  "wp_get_custom_item",
+  {
+    title: "Get a custom post type item",
+    description: "Fetch a single item of a custom post type by ID.",
+    inputSchema: { postType: z.string(), id: z.number().int() },
+  },
+  async ({ postType, id }) => {
+    try {
+      return ok(await wp.getCustomItem(postType, id));
+    } catch (e) {
+      return err(e);
+    }
+  }
+);
+
+server.registerTool(
+  "wp_create_custom_item",
+  {
+    title: "Create a custom post type item",
+    description: "Create a new item of a custom post type. Defaults to draft status where the type supports it, same safety default as wp_create_post. Field support varies by how the plugin registered the type — pass whatever fields it accepts.",
+    inputSchema: { postType: z.string(), data: z.record(z.unknown()).describe("Fields to set, e.g. { title, content, status }") },
+  },
+  async ({ postType, data }) => {
+    try {
+      return ok(await wp.createCustomItem(postType, data));
+    } catch (e) {
+      return err(e);
+    }
+  }
+);
+
+server.registerTool(
+  "wp_update_custom_item",
+  {
+    title: "Update a custom post type item",
+    description: "Partially update an existing custom post type item.",
+    inputSchema: { postType: z.string(), id: z.number().int(), data: z.record(z.unknown()) },
+  },
+  async ({ postType, id, data }) => {
+    try {
+      return ok(await wp.updateCustomItem(postType, id, data));
+    } catch (e) {
+      return err(e);
+    }
+  }
+);
+
+server.registerTool(
+  "wp_delete_custom_item",
+  {
+    title: "Delete a custom post type item",
+    description: "Delete an item of a custom post type. Most custom post types support trash like regular posts (force=false is reversible); some plugin-defined types may not — check the response.",
+    inputSchema: { postType: z.string(), id: z.number().int(), force: z.boolean().optional() },
+  },
+  async ({ postType, id, force }) => {
+    try {
+      return ok(await wp.deleteCustomItem(postType, id, force));
+    } catch (e) {
+      return err(e);
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -350,6 +350,51 @@ export class WordPressClient {
     return apiRequest(`${this.baseUrl}/themes`, { headers: this.headers() });
   }
 
+  // ---------- Generic custom post types ----------
+  // For any post type NOT covered by dedicated methods above (posts, pages)
+  // — e.g. plugin-registered types like "event" or "lead_magnet". Pass the
+  // type's REST base (from listPostTypes()'s "rest_base" field — usually
+  // but not always the same as the post type slug) as `postType`.
+  // Most custom post types are still stored in wp_posts like standard
+  // posts, so status/trash semantics normally match — but a plugin can
+  // customize what fields a given type actually supports, so treat this
+  // as "should work for most plugins" rather than guaranteed universal.
+
+  listCustomItems(postType: string, params: { search?: string; perPage?: number; page?: number } = {}) {
+    return apiRequest(`${this.baseUrl}/${postType}`, {
+      headers: this.headers(),
+      query: { search: params.search, per_page: params.perPage ?? 10, page: params.page ?? 1 },
+    });
+  }
+
+  getCustomItem(postType: string, id: number) {
+    return apiRequest(`${this.baseUrl}/${postType}/${id}`, { headers: this.headers() });
+  }
+
+  createCustomItem(postType: string, data: Record<string, unknown>) {
+    return apiRequest(`${this.baseUrl}/${postType}`, {
+      method: "POST",
+      headers: this.headers(),
+      body: { status: "draft", ...data },
+    });
+  }
+
+  updateCustomItem(postType: string, id: number, data: Record<string, unknown>) {
+    return apiRequest(`${this.baseUrl}/${postType}/${id}`, {
+      method: "POST",
+      headers: this.headers(),
+      body: data,
+    });
+  }
+
+  deleteCustomItem(postType: string, id: number, force = false) {
+    return apiRequest(`${this.baseUrl}/${postType}/${id}`, {
+      method: "DELETE",
+      headers: this.headers(),
+      query: { force },
+    });
+  }
+
   // ---------- Search ----------
 
   search(term: string, type?: string) {
