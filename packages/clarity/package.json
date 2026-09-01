@@ -1,28 +1,28 @@
-   {
-     "name": "@urdigital/mcp-server-clarity",
-     "version": "0.1.0",
-     "description": "MCP server for Microsoft Clarity: behavioral analytics (traffic, engagement, rage clicks, dead clicks) via the Data Export API.",
-     "type": "module",
-     "bin": {
-       "mcp-server-clarity": "dist/index.js"
-     },
-     "files": ["dist"],
-     "license": "MIT",
-     "keywords": ["mcp", "model-context-protocol", "clarity", "microsoft-clarity", "analytics", "claude"],
-     "publishConfig": { "access": "public" },
-     "repository": {
-       "type": "git",
-       "url": "git+https://github.com/urdigitalau/mcp-integrations.git",
-       "directory": "packages/clarity"
-     },
-     "scripts": {
-       "build": "tsc -p tsconfig.json",
-       "dev": "tsx src/index.ts",
-       "typecheck": "tsc -p tsconfig.json --noEmit"
-     },
-     "dependencies": {
-       "@urdigital/mcp-server-shared": "workspace:*",
-       "@modelcontextprotocol/sdk": "^1.15.0",
-       "zod": "^3.25.0"
-     }
-   }
+{
+  "name": "@urdigital/mcp-server-clarity",
+  "version": "0.1.1",
+  "description": "MCP server for Microsoft Clarity: behavioral analytics (traffic, engagement, rage clicks, dead clicks) via the Data Export API.",
+  "type": "module",
+  "bin": {
+    "mcp-server-clarity": "dist/index.js"
+  },
+  "files": ["dist"],
+  "license": "MIT",
+  "keywords": ["mcp", "model-context-protocol", "clarity", "microsoft-clarity", "analytics", "claude"],
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urdigitalau/mcp-integrations.git",
+    "directory": "packages/clarity"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@urdigital/mcp-server-shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.15.0",
+    "zod": "^3.25.0"
+  }
+}

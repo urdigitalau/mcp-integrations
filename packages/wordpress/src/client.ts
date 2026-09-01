@@ -1,4 +1,4 @@
-import { apiRequest, requireEnv } from "@urdigital/mcp-server-shared";
+import { apiRequest, requireEnv, assertSafePublicHttpsUrl, fetchWithSizeLimit } from "@urdigital/mcp-server-shared";
 
 /**
  * Auth: WordPress core Application Passwords (built in since WP 5.6).
@@ -187,11 +187,12 @@ export class WordPressClient {
 
   // ---------- Media ----------
 
+  /** Max size for a fetched source file before upload — 25MB, generous for images/docs, not for arbitrary large files. */
+  private static readonly MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
   async uploadMedia(fileUrl: string, filename: string, altText?: string) {
-    const fileRes = await fetch(fileUrl);
-    if (!fileRes.ok) throw new Error(`Could not fetch source file ${fileUrl}: HTTP ${fileRes.status}`);
-    const arrayBuffer = await fileRes.arrayBuffer();
-    const contentType = fileRes.headers.get("content-type") ?? "application/octet-stream";
+    await assertSafePublicHttpsUrl(fileUrl);
+    const { buffer, contentType } = await fetchWithSizeLimit(fileUrl, WordPressClient.MAX_UPLOAD_BYTES);
 
     const res = await fetch(`${this.baseUrl}/media`, {
       method: "POST",
@@ -200,7 +201,7 @@ export class WordPressClient {
         "Content-Type": contentType,
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
-      body: Buffer.from(arrayBuffer),
+      body: new Uint8Array(buffer),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(`Media upload failed: ${JSON.stringify(json)}`);

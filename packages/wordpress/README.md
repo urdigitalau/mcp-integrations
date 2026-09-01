@@ -111,6 +111,17 @@ using Custom Post Type UI + ACF:
 - **`wp_get_user`'s `roles` field can come back `undefined`** even for an
   admin account, depending on site/plugin configuration around the
   `edit_users` capability — not necessarily a bug if you see this.
+- **`wp_upload_media` validates URLs before fetching them.** A code review
+  flagged that the original implementation would fetch *any* URL it was
+  given with no validation — including internal addresses, localhost, and
+  cloud metadata endpoints (`169.254.169.254`), which could expose
+  internal services or cloud credentials to whatever's reading the tool's
+  output. This is fixed: only `https://` URLs resolving to public,
+  non-reserved addresses are allowed, and the downloaded file is capped at
+  25MB, enforced by counting real streamed bytes rather than trusting a
+  `Content-Length` header. See `@urdigital/mcp-server-shared`'s README for
+  the full detail and a stated limitation (DNS rebinding) that isn't fully
+  closed by this fix.
 - **Media URLs may not live on your WordPress domain at all.** Sites using
   an offload plugin (e.g. to Cloudflare Images, S3, etc.) will return
   `source_url` pointing elsewhere entirely — confirmed on the test site,

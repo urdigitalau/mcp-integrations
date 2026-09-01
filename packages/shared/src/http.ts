@@ -63,7 +63,17 @@ export async function apiRequest<T = unknown>(url: string, options: RequestOptio
       } catch {
         parsedBody = await res.text().catch(() => undefined);
       }
-      throw new ApiError(`Request to ${fullUrl} failed with ${res.status}`, res.status, parsedBody);
+      // SECURITY: never include the query string in the thrown message.
+      // Several APIs this repo talks to (Bing included) put the API key
+      // directly in the query string rather than a header. If the full
+      // URL were included here, that key would flow straight into the
+      // error text returned to the calling model — visible in chat
+      // transcripts, logs, and anywhere else that response gets recorded.
+      // Path is kept (safe, no secrets live there in any API used here)
+      // since it's still useful for distinguishing which endpoint failed.
+      const safeUrl = new URL(fullUrl);
+      safeUrl.search = "";
+      throw new ApiError(`Request to ${safeUrl.toString()} failed with ${res.status}`, res.status, parsedBody);
     }
 
     const retryAfter = Number(res.headers.get("retry-after"));

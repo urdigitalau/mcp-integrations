@@ -195,6 +195,40 @@ silently treat a failed GraphQL query as a success.
 - [ ] Optional Streamable HTTP transport for hosted/remote deployment
 - [ ] Shared integration-test harness against recorded fixtures
 
+## Security
+
+This is a young project, and two real issues have already been found and
+fixed via code review rather than caught before shipping — worth being
+upfront about both rather than pretending the code was clean from the
+start:
+
+1. **API keys leaking into error messages** (fixed in `shared` v0.1.2 /
+   `bing-webmaster` v0.1.3 / others v0.1.1). Bing's API takes its key as a
+   query-string parameter rather than a header; an early version of the
+   shared HTTP client included the full request URL — key included — in
+   any error message, which then flowed into whatever was reading the
+   tool's output (an AI model's response, chat transcripts, logs). Fixed
+   by stripping the query string from error messages entirely.
+2. **SSRF in `wp_upload_media`** (fixed in `wordpress` v0.1.1). The
+   original implementation fetched any URL it was given with no
+   validation — including internal network addresses, localhost, and
+   cloud metadata endpoints (`169.254.169.254`, which exposes instance
+   credentials on many cloud VMs). Fixed with a shared SSRF guard
+   (`@urdigital/mcp-server-shared`'s `assertSafePublicHttpsUrl`) that
+   restricts fetches to `https://` URLs resolving to public addresses,
+   plus a streamed byte-size cap.
+
+**If you're adding a new integration that fetches a caller-supplied URL,
+use `assertSafePublicHttpsUrl`/`fetchWithSizeLimit` from the shared
+package — don't fetch a caller-given URL directly.** See that package's
+README for the full detail, including a stated limitation (DNS rebinding)
+that isn't fully closed by the current fix.
+
+If you find a security issue in this repo, please open a GitHub issue (or,
+for anything you'd rather not post publicly, contact the maintainer
+directly) rather than assuming existing code has been vetted for this class
+of problem — as the two fixes above show, it's still actively catching up.
+
 ## Contributing
 
 Adding a new integration:
