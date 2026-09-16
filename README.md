@@ -1,9 +1,9 @@
 # mcp-integrations
 
 Open-source MCP (Model Context Protocol) servers for the marketing/web-ops
-toolbox: **WordPress**, **Bing Webmaster Tools**, **Microsoft Clarity**, and
-**Cloudflare Analytics** today, with **Shopify** and **Squarespace**
-planned next.
+toolbox: **WordPress**, **Bing Webmaster Tools**, **Microsoft Clarity**,
+**Cloudflare Analytics**, and **Xero** today, with **Shopify** and
+**Squarespace** planned next.
 
 ## Why one repo, separate servers
 
@@ -13,7 +13,7 @@ what they need — someone using Squarespace shouldn't have to configure
 WordPress credentials to get Cloudflare analytics working. But they all live
 in **one pnpm monorepo** and share an `@urdigital/mcp-server-shared`
 package for HTTP retry/backoff logic and env-var handling, so adding the
-5th, 6th, 7th integration is mostly "copy a package, swap the client and
+6th, 7th, 8th integration is mostly "copy a package, swap the client and
 tool list" instead of re-solving auth/HTTP plumbing each time. This is the
 same pattern the official `modelcontextprotocol/servers` repo and most
 multi-integration MCP projects use.
@@ -21,11 +21,12 @@ multi-integration MCP projects use.
 ```
 mcp-integrations/
 ├── packages/
-│   ├── shared/            # HTTP client w/ retry, env helpers — no tools of its own
+│   ├── shared/            # HTTP client w/ retry, env helpers, SSRF guard — no tools of its own
 │   ├── wordpress/         # mcp-server-wordpress (46 tools)
 │   ├── bing-webmaster/    # mcp-server-bing-webmaster (12 tools)
 │   ├── clarity/           # mcp-server-clarity (1 tool)
-│   └── cloudflare/        # mcp-server-cloudflare (5 tools)
+│   ├── cloudflare/        # mcp-server-cloudflare (5 tools)
+│   └── xero/              # mcp-server-xero (8 tools)
 │       # future: shopify/, squarespace/
 ├── pnpm-workspace.yaml
 └── package.json
@@ -68,16 +69,25 @@ node packages/wordpress/dist/index.js
 | Bing Webmaster Tools | API key | bing.com/webmasters → Settings → API Access |
 | Microsoft Clarity | Bearer token, scoped per project | Clarity project → Settings → Data Export |
 | Cloudflare Analytics | API token, scoped to Zone → Analytics → Read | dash.cloudflare.com → My Profile → API Tokens |
+| Xero | Full OAuth 2.0 (not Custom Connections) — see `packages/xero/README.md` for the required one-time setup step | developer.xero.com → My Apps |
 
-None of these are OAuth flows, so there's no redirect/callback server needed
-— just static tokens read from environment variables at startup. Tools never
-accept secrets as arguments. Cloudflare is the one exception to "just a
-token": it also needs a Zone ID (found on the zone's Overview page in the
-Cloudflare dashboard) since one token can be scoped to multiple zones.
+Four of these five are static tokens read from environment variables at
+startup — no redirect/callback server, no browser interaction, and tools
+never accept secrets as arguments. **Xero is the one exception**: Custom
+Connections (Xero's simpler, token-like option) weren't available on the
+plan this was built against, so it needs full interactive OAuth — a
+one-time browser login via a separate setup script (not part of the MCP
+server itself), after which the server runs credential-free the same way
+the others do, reading a locally-persisted, auto-rotating token file
+instead of a static secret. See that package's README for why this is
+architecturally different from everything else here, not just a longer
+setup step. Cloudflare also needs one extra piece beyond its token — a
+Zone ID (found on the zone's Overview page in the Cloudflare dashboard),
+since one token can be scoped to multiple zones.
 
 ### Connecting to Claude Desktop / Claude Code
 
-All four servers are published to npm — `npx` is the simplest way to run
+All servers are published to npm — `npx` is the simplest way to run
 them, no local build or path required:
 
 ```json
@@ -109,10 +119,27 @@ them, no local build or path required:
         "CLOUDFLARE_API_TOKEN": "...",
         "CLOUDFLARE_ZONE_ID": "..."
       }
+    },
+    "xero": {
+      "command": "npx",
+      "args": ["-y", "@urdigital/mcp-server-xero"],
+      "env": {
+        "XERO_CLIENT_ID": "...",
+        "XERO_CLIENT_SECRET": "...",
+        "XERO_TOKEN_PATH": "/absolute/path/to/.xero-tokens.json"
+      }
     }
   }
 }
 ```
+
+Xero's `XERO_TOKEN_PATH` needs a real, stable, absolute path — you must
+run that package's one-time setup step first to create the file (`npx`
+alone won't do it) — see `packages/xero/README.md`. An absolute path
+matters more here than it would for a plain env var, since `npx` runs from
+a location you don't control, and the server needs to find (and keep
+rewriting) the same file on every run, not wherever the process happens to
+start from.
 
 If you're working from a local clone instead (e.g. for development), point
 `command` at `node` and `args` at the built
@@ -171,6 +198,23 @@ array in the body — this client checks for that explicitly, since a plain
 status-code check (as used by the REST-based servers in this repo) would
 silently treat a failed GraphQL query as a success.
 
+**Xero** (`packages/xero`) — 8 tools covering contacts, invoices, bank
+transactions, and the chart of accounts: `xero_get_organisation`,
+`xero_list_contacts`, `xero_get_contact`, `xero_list_invoices`,
+`xero_get_invoice`, `xero_create_invoice`, `xero_list_bank_transactions`,
+`xero_list_accounts`. Unlike every other server here, this one requires a
+one-time interactive OAuth login and persists a rotating refresh token to
+a local file (`.xero-tokens.json`) — Xero invalidates and reissues the
+refresh token on every use, so this is genuinely required, not a design
+choice; see the package's own README for the full setup process and why
+this file must never be committed. `xero_create_invoice` defaults to
+`DRAFT` status, same "don't finalize by accident" pattern as
+`wp_create_post`. All 8 tools tested against a real, live organisation —
+also confirmed: Xero replaced its old broad OAuth scopes with granular
+ones as of March 2, 2026, and any new app can only use the new names; the
+package's own README documents the exact scopes this server requests and
+why.
+
 ## Known API constraints worth knowing before you build on this
 
 - **Clarity**: only the last 1–3 days of data are retrievable at all through
@@ -185,6 +229,12 @@ silently treat a failed GraphQL query as a success.
   (query window size, data retention, dataset availability) that surface as
   runtime errors rather than anything discoverable in advance — see the
   package's own README for the specific limits found during testing.
+- **Xero**: refresh tokens are rotated (invalidated and reissued) on every
+  use — the token file persisted to disk isn't a convenience cache, it's
+  the only place the currently-valid refresh token exists after the first
+  refresh happens. Also, OAuth scope names changed as of March 2, 2026
+  (old broad scopes are rejected outright for any newly-created app) — see
+  the package's own README for the current scope list this server uses.
 
 ## Roadmap
 
@@ -224,10 +274,16 @@ package — don't fetch a caller-given URL directly.** See that package's
 README for the full detail, including a stated limitation (DNS rebinding)
 that isn't fully closed by the current fix.
 
+**If your integration needs to persist any credential to a local file**
+(Xero's rotating refresh token is the only current example), confirm it's
+covered by `.gitignore` *before* the file is ever created, not after — see
+`packages/xero/README.md`'s Security section for the checklist this
+project used.
+
 If you find a security issue in this repo, please open a GitHub issue (or,
 for anything you'd rather not post publicly, contact the maintainer
 directly) rather than assuming existing code has been vetted for this class
-of problem — as the two fixes above show, it's still actively catching up.
+of problem — as the fixes above show, it's still actively catching up.
 
 ## Contributing
 
@@ -242,9 +298,12 @@ Adding a new integration:
    (see `wp_create_post` defaulting to `draft`) and say so in the tool
    description, so a calling model doesn't take an irreversible action by
    default.
+6. If the API needs full OAuth rather than a static token (see Xero), plan
+   for a separate one-time setup step rather than trying to do interactive
+   login inside the MCP server itself — see `packages/xero/setup.ts`.
 
 PRs welcome — this is meant to keep growing into a small ecosystem of
-these, not stay a four-service repo.
+these, not stay a five-service repo.
 
 ## License
 

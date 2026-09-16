@@ -6,3 +6,5 @@ dist/
 !.env.example
 .DS_Store
 test.mjs
+# Xero OAuth tokens - a real, live credential, never commit
+.xero-tokens.json
