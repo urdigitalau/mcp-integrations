@@ -27,6 +27,10 @@ import { apiRequest, requireEnv, optionalEnv } from "@urdigital/mcp-server-share
 const TOKEN_URL = "https://identity.xero.com/connect/token";
 const API_BASE = "https://api.xero.com/api.xro/2.0";
 const CONNECTIONS_URL = "https://api.xero.com/connections";
+const PAYROLL_AU_BASE = "https://api.xero.com/payroll.xro/1.0";
+const FILES_BASE = "https://api.xero.com/files.xro/1.0";
+const ASSETS_BASE = "https://api.xero.com/assets.xro/1.0";
+const PROJECTS_BASE = "https://api.xero.com/projects.xro/2.0";
 
 interface TokenFile {
   access_token: string;
@@ -143,5 +147,204 @@ export class XeroClient {
 
   async getOrganisation() {
     return apiRequest(`${API_BASE}/Organisation`, { headers: await this.headers() });
+  }
+
+  // ==================== Reports (Accounting API) ====================
+  // Same base/auth as everything above — reports are just another
+  // resource under the main Accounting API, not a separate product.
+
+  async getProfitAndLoss(params: { fromDate?: string; toDate?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/ProfitAndLoss`, { headers: await this.headers(), query: params });
+  }
+
+  async getBalanceSheet(params: { date?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/BalanceSheet`, { headers: await this.headers(), query: params });
+  }
+
+  async getBankSummary(params: { fromDate?: string; toDate?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/BankSummary`, { headers: await this.headers(), query: params });
+  }
+
+  async getBudgetSummary(params: { date?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/BudgetSummary`, { headers: await this.headers(), query: params });
+  }
+
+  async getExecutiveSummary(params: { date?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/ExecutiveSummary`, { headers: await this.headers(), query: params });
+  }
+
+  async getTrialBalance(params: { date?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/TrialBalance`, { headers: await this.headers(), query: params });
+  }
+
+  /** contactId is REQUIRED by Xero for this report — it's per-contact, not a whole-org summary. */
+  async getAgedReceivablesByContact(contactId: string, params: { fromDate?: string; toDate?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/AgedReceivablesByContact`, { headers: await this.headers(), query: { contactId, ...params } });
+  }
+
+  /** contactId is REQUIRED by Xero for this report — same as receivables above. */
+  async getAgedPayablesByContact(contactId: string, params: { fromDate?: string; toDate?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/AgedPayablesByContact`, { headers: await this.headers(), query: { contactId, ...params } });
+  }
+
+  /**
+   * BAS/GST reports work fundamentally differently from every other
+   * report in this class — confirmed via Xero's own developer community,
+   * after an initial guessed endpoint (/Reports/BASReport) returned a
+   * real 404 during testing. They are not live, computed-on-demand
+   * reports accessible by name; they're PUBLISHED SNAPSHOTS that someone
+   * must have explicitly published inside the Xero UI first (Reports ->
+   * GST Return / BAS, "Publish"). There is no direct URL for "the current
+   * BAS report" — you list whatever's been published, find the one you
+   * want by its ReportID, then fetch that specific report.
+   *
+   * Practical implication: this may return an empty list if nobody has
+   * published a BAS/GST report in this org recently — that's a correct,
+   * expected result in that case, not a bug.
+   */
+  async listPublishedReports() {
+    return apiRequest(`${API_BASE}/Reports`, { headers: await this.headers() });
+  }
+
+  /** Fetches one specific published report by the ReportID found via listPublishedReports() — this is how you actually retrieve a BAS/GST report. */
+  async getPublishedReport(reportId: string) {
+    return apiRequest(`${API_BASE}/Reports/${reportId}`, { headers: await this.headers() });
+  }
+
+  /** US-only (1099 tax form report) — included for completeness even though this org is AU-based. */
+  async getTenNinetyNine(params: { taxYear?: string } = {}) {
+    return apiRequest(`${API_BASE}/Reports/TenNinetyNine`, { headers: await this.headers(), query: params });
+  }
+
+  // ==================== Payments (Accounting API) ====================
+
+  async listPayments(params: { where?: string; page?: number } = {}) {
+    return apiRequest(`${API_BASE}/Payments`, { headers: await this.headers(), query: params });
+  }
+
+  async getPayment(paymentId: string) {
+    return apiRequest(`${API_BASE}/Payments/${paymentId}`, { headers: await this.headers() });
+  }
+
+  /** Records a payment against an existing invoice — this doesn't move real money, it records that a payment happened (e.g. via bank transfer) so Xero's books reflect it. */
+  async createPayment(data: { invoiceId: string; accountId: string; amount: number; date: string }) {
+    return apiRequest(`${API_BASE}/Payments`, {
+      method: "POST",
+      headers: await this.headers(),
+      body: { Payments: [{ Invoice: { InvoiceID: data.invoiceId }, Account: { AccountID: data.accountId }, Amount: data.amount, Date: data.date }] },
+    });
+  }
+
+  // ==================== Manual Journals (Accounting API) ====================
+
+  async listManualJournals(params: { where?: string; page?: number } = {}) {
+    return apiRequest(`${API_BASE}/ManualJournals`, { headers: await this.headers(), query: params });
+  }
+
+  async getManualJournal(manualJournalId: string) {
+    return apiRequest(`${API_BASE}/ManualJournals/${manualJournalId}`, { headers: await this.headers() });
+  }
+
+  /** Defaults to DRAFT — same safe-by-default pattern as createInvoice. */
+  async createManualJournal(data: { narration: string; lines: { accountCode: string; description?: string; taxType?: string; lineAmount: number }[]; status?: "DRAFT" | "POSTED" }) {
+    return apiRequest(`${API_BASE}/ManualJournals`, {
+      method: "POST",
+      headers: await this.headers(),
+      body: {
+        ManualJournals: [
+          {
+            Narration: data.narration,
+            Status: data.status ?? "DRAFT",
+            JournalLines: data.lines.map((l) => ({ AccountCode: l.accountCode, Description: l.description, TaxType: l.taxType, LineAmount: l.lineAmount })),
+          },
+        ],
+      },
+    });
+  }
+
+  // ==================== Budgets (Accounting API, read-only) ====================
+
+  async listBudgets() {
+    return apiRequest(`${API_BASE}/Budgets`, { headers: await this.headers() });
+  }
+
+  async getBudget(budgetId: string) {
+    return apiRequest(`${API_BASE}/Budgets/${budgetId}`, { headers: await this.headers() });
+  }
+
+  // ==================== Attachments (Accounting API, read-only) ====================
+  // Attachments hang off other entities (invoices, contacts, etc.) rather
+  // than being their own resource — this is generic across entity types.
+
+  async listAttachments(entityType: "Invoices" | "Contacts" | "CreditNotes" | "BankTransactions", entityId: string) {
+    return apiRequest(`${API_BASE}/${entityType}/${entityId}/Attachments`, { headers: await this.headers() });
+  }
+
+  // ==================== Payroll AU (separate API — read-only) ====================
+  // No write tools here deliberately — payroll actions (posting a pay
+  // run, creating an employee) have real financial/legal consequences
+  // with no obvious safe default the way a draft invoice has. Read-only
+  // by design, not by omission.
+
+  async listPayrollEmployees(params: { where?: string; page?: number } = {}) {
+    return apiRequest(`${PAYROLL_AU_BASE}/Employees`, { headers: await this.headers(), query: params });
+  }
+
+  async getPayrollEmployee(employeeId: string) {
+    return apiRequest(`${PAYROLL_AU_BASE}/Employees/${employeeId}`, { headers: await this.headers() });
+  }
+
+  async listPayRuns(params: { page?: number } = {}) {
+    return apiRequest(`${PAYROLL_AU_BASE}/PayRuns`, { headers: await this.headers(), query: params });
+  }
+
+  async getPayRun(payRunId: string) {
+    return apiRequest(`${PAYROLL_AU_BASE}/PayRuns/${payRunId}`, { headers: await this.headers() });
+  }
+
+  async getPayslip(payslipId: string) {
+    return apiRequest(`${PAYROLL_AU_BASE}/Payslip/${payslipId}`, { headers: await this.headers() });
+  }
+
+  async getPayrollSettings() {
+    return apiRequest(`${PAYROLL_AU_BASE}/Settings`, { headers: await this.headers() });
+  }
+
+  async listTimesheets(params: { employeeId?: string; page?: number } = {}) {
+    return apiRequest(`${PAYROLL_AU_BASE}/Timesheets`, { headers: await this.headers(), query: params });
+  }
+
+  // ==================== Files (separate API, read-only) ====================
+
+  async listFiles(params: { pagesize?: number } = {}) {
+    return apiRequest(`${FILES_BASE}/Files`, { headers: await this.headers(), query: params });
+  }
+
+  async getFile(fileId: string) {
+    return apiRequest(`${FILES_BASE}/Files/${fileId}`, { headers: await this.headers() });
+  }
+
+  // ==================== Assets (separate API, read-only) ====================
+
+  async listAssets(params: { status?: string; page?: number } = {}) {
+    return apiRequest(`${ASSETS_BASE}/Assets`, { headers: await this.headers(), query: params });
+  }
+
+  async getAsset(assetId: string) {
+    return apiRequest(`${ASSETS_BASE}/Assets/${assetId}`, { headers: await this.headers() });
+  }
+
+  async listAssetTypes() {
+    return apiRequest(`${ASSETS_BASE}/AssetTypes`, { headers: await this.headers() });
+  }
+
+  // ==================== Projects (separate API, read-only) ====================
+
+  async listProjects(params: { contactID?: string; page?: number } = {}) {
+    return apiRequest(`${PROJECTS_BASE}/Projects`, { headers: await this.headers(), query: params });
+  }
+
+  async getProject(projectId: string) {
+    return apiRequest(`${PROJECTS_BASE}/Projects/${projectId}`, { headers: await this.headers() });
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@urdigital/mcp-server-xero",
-  "version": "0.1.0",
-  "description": "MCP server for Xero: contacts, invoices, bank transactions, accounts. Full OAuth 2.0 (not Custom Connections) — see this package's README for the required one-time setup step.",
+  "version": "0.2.0",
+  "description": "MCP server for Xero: 41 tools across Accounting, Reports, Payments, Manual Journals, Budgets, Attachments, Payroll AU, Files, Assets, and Projects. Full OAuth 2.0 (not Custom Connections) — see this package's README for the required one-time setup step.",
   "type": "module",
   "bin": {
     "mcp-server-xero": "dist/index.js"

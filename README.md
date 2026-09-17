@@ -26,7 +26,7 @@ mcp-integrations/
 │   ├── bing-webmaster/    # mcp-server-bing-webmaster (12 tools)
 │   ├── clarity/           # mcp-server-clarity (1 tool)
 │   ├── cloudflare/        # mcp-server-cloudflare (5 tools)
-│   └── xero/              # mcp-server-xero (8 tools)
+│   └── xero/              # mcp-server-xero (41 tools)
 │       # future: shopify/, squarespace/
 ├── pnpm-workspace.yaml
 └── package.json
@@ -198,22 +198,27 @@ array in the body — this client checks for that explicitly, since a plain
 status-code check (as used by the REST-based servers in this repo) would
 silently treat a failed GraphQL query as a success.
 
-**Xero** (`packages/xero`) — 8 tools covering contacts, invoices, bank
-transactions, and the chart of accounts: `xero_get_organisation`,
-`xero_list_contacts`, `xero_get_contact`, `xero_list_invoices`,
-`xero_get_invoice`, `xero_create_invoice`, `xero_list_bank_transactions`,
-`xero_list_accounts`. Unlike every other server here, this one requires a
+**Xero** (`packages/xero`) — 41 tools spanning the core Accounting API
+(contacts, invoices, bank transactions, chart of accounts), Reports
+(P&L, balance sheet, trial balance, aged receivables/payables, and more),
+Payments, Manual Journals, Budgets, Attachments, Payroll AU, Files,
+Assets, and Projects. Unlike every other server here, this one requires a
 one-time interactive OAuth login and persists a rotating refresh token to
 a local file (`.xero-tokens.json`) — Xero invalidates and reissues the
 refresh token on every use, so this is genuinely required, not a design
 choice; see the package's own README for the full setup process and why
-this file must never be committed. `xero_create_invoice` defaults to
-`DRAFT` status, same "don't finalize by accident" pattern as
-`wp_create_post`. All 8 tools tested against a real, live organisation —
-also confirmed: Xero replaced its old broad OAuth scopes with granular
-ones as of March 2, 2026, and any new app can only use the new names; the
-package's own README documents the exact scopes this server requests and
-why.
+this file must never be committed. `xero_create_invoice` and
+`xero_create_manual_journal` default to `DRAFT` status, same "don't
+finalize by accident" pattern as `wp_create_post`. Payroll/Assets/Files
+are deliberately read-only — no obvious safe default exists for actions
+like posting a pay run, unlike a draft invoice. Nearly every tool has been
+tested against a real, live organisation; see the package's own README for
+two real findings worth knowing: BAS/GST reports use a completely
+different "published snapshot" mechanism than every other report (an
+initial guess at a direct endpoint returned a genuine 404), and a scope
+named `app.connections` looked necessary but is actually restricted to a
+different OAuth grant type entirely — including it broke authorization
+outright with no useful error until the exact cause was tracked down.
 
 ## Known API constraints worth knowing before you build on this
 

@@ -23,28 +23,53 @@ const port = Number(optionalEnv("XERO_SETUP_PORT") ?? 5000);
 const redirectUri = `http://localhost:${port}/callback`;
 const tokenPath = optionalEnv("XERO_TOKEN_PATH") ?? "./.xero-tokens.json";
 
-// SCOPES — confirmed current as of this writing (Sept 2026). Xero
-// replaced the old broad "accounting.transactions" scope with granular
-// ones on March 2, 2026; any app created after that date (which this one
-// is) can ONLY use the new names — the old broad names are rejected
-// outright with "invalid_scope", which is exactly what an earlier
-// version of this script hit. Mapping used here, matched to what this
-// server's tools actually need (write access only where we have a write
-// tool — currently just invoices):
-//   accounting.contacts            - unchanged, contacts list/get (read use here)
-//   accounting.invoices            - write-capable (we have a create-invoice tool)
-//   accounting.banktransactions.read - read-only (no write tool for these)
-//   accounting.settings.read       - read-only (chart of accounts, organisation)
+// SCOPES — expanded to cover every scope Xero currently offers, per a
+// direct request to build full coverage. Confirmed against Xero's own
+// official scope reference table (pasted directly from their docs during
+// testing), which also revealed the actual bug that caused an earlier
+// "Requested wrong apps scopes" error: "app.connections" is explicitly a
+// NON-TENANTED scope restricted to the Client Credentials grant type —
+// it cannot be requested through this interactive Authorization Code
+// flow at all, regardless of which other scopes accompany it. It's
+// removed below for exactly that reason. It was never actually needed:
+// tenant discovery via GET /connections works fine without it, as proven
+// by this server's very first successful setup run.
 const scopes = [
   "openid",
   "profile",
   "email",
   "offline_access",
+  "accounting.settings",
   "accounting.contacts",
+  "accounting.attachments",
+  "accounting.budgets.read",
+  "accounting.payments",
   "accounting.invoices",
-  "accounting.banktransactions.read",
-  "accounting.settings.read",
+  "accounting.banktransactions",
+  "accounting.manualjournals",
+  "accounting.reports.aged.read",
+  "accounting.reports.balancesheet.read",
+  "accounting.reports.banksummary.read",
+  "accounting.reports.budgetsummary.read",
+  "accounting.reports.executivesummary.read",
+  "accounting.reports.profitandloss.read",
+  "accounting.reports.trialbalance.read",
+  "accounting.reports.taxreports.read",
+  "accounting.reports.tenninetynine.read",
+  "payroll.employees",
+  "payroll.payruns",
+  "payroll.payslip",
+  "payroll.settings",
+  "payroll.timesheets",
+  "files",
+  "assets",
+  "projects",
 ].join(" ");
+// Every scope name above is confirmed valid against Xero's own official
+// scope reference table. If any single one is still rejected, it's more
+// likely a plan/product-availability issue on this specific organisation
+// (e.g. Payroll requires a Payroll-enabled plan, per Xero's developer
+// FAQ) than a wrong scope name.
 
 const authUrl =
   `https://login.xero.com/identity/connect/authorize?response_type=code` +
